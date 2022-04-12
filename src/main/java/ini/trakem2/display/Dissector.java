@@ -59,6 +59,9 @@ public class Dissector extends ZDisplayable implements VectorData {
 
 	/** The list of items to count. */
 	private ArrayList<Item> al_items = new ArrayList<Item>();
+	
+	/** Override the automatic detection of a new point's proximity to other points. */
+	private int radius_override = 0;
 
 	/** One element to count.
 	 * Each item contains one or more x,y,layer_id entries.
@@ -163,7 +166,8 @@ public class Dissector extends ZDisplayable implements VectorData {
 			if (layer_set.indexOf(layer_set.getLayer(p_layer[n_points-1])) == il -1) {
 				// check if new point is within radius of the found point
 				if (p[0][n_points-1] + radius >= x && p[0][n_points-1] - radius <= x
-				 && p[1][n_points-1] + radius >= y && p[1][n_points-1] - radius <= y) {
+				 && p[1][n_points-1] + radius >= y && p[1][n_points-1] - radius <= y
+				 || radius_override == 1) {
 					// ok
 				} else {
 					// can't add
@@ -185,7 +189,8 @@ public class Dissector extends ZDisplayable implements VectorData {
 			if (layer_set.indexOf(layer_set.getLayer(p_layer[0])) == il +1) {
 				// check if new point is within radius of the found point
 				if (p[0][0] + radius >= x && p[0][0] - radius <= x
-				 && p[1][0] + radius >= y && p[1][0] - radius <= y) {
+				 && p[1][0] + radius >= y && p[1][0] - radius <= y
+				 || radius_override == 1) {
 					// ok
 				} else {
 					// can't add
@@ -511,8 +516,36 @@ public class Dissector extends ZDisplayable implements VectorData {
 				break;
 			}
 		}
+		
+		// add multiple points at once to the last added item
+		if (me.isShiftDown() && !Utils.isControlDown(me)) {
+			radius_override = 1;
+			if (al_items.size() != 0 && al_items.get(al_items.size()-1).n_points >= 1) {
+				final int cindex = layer_set.indexOf(la);
+				
+				final int last_points = al_items.get(al_items.size()-1).n_points;
+				final int lindex = layer_set.indexOf(layer_set.getLayer(al_items.get(al_items.size()-1).p_layer[last_points-1]));
+				
+				final double last_x = (double)al_items.get(al_items.size()-1).p[0][last_points-1];
+				final double last_y = (double)al_items.get(al_items.size()-1).p[1][last_points-1];
 
-
+				final double diff_x = (double)(x_p-last_x)/(double)Math.abs((cindex-lindex));
+				final double diff_y = (double)(y_p-last_y)/(double)Math.abs((cindex-lindex));
+				if (cindex > lindex) {
+					for (int i=lindex+1; i <= cindex; i++) {
+						al_items.get(al_items.size()-1).add(last_x+(diff_x*(double)(i-lindex)), last_y+(diff_y*(double)(i-lindex)), layer_set.getLayer(i));
+					}
+				}
+				if (cindex < lindex) {
+					for (int i=lindex-1; i >= cindex; i--) {
+						al_items.get(al_items.size()-1).add(last_x+(diff_x*(double)(lindex-i)), last_y+(diff_y*(double)(lindex-i)), layer_set.getLayer(i));
+					}
+				}
+			}
+			radius_override = 0;
+			return;
+		}
+		
 		//final boolean is_zoom_invariant = "true".equals(project.getProperty("dissector_zoom"));
 
 		// TODO: if zoom invariant, should check for nearest point. Or nearest point anyway, when deleting
