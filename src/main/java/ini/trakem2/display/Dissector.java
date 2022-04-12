@@ -541,6 +541,12 @@ public class Dissector extends ZDisplayable implements VectorData {
 						al_items.get(al_items.size()-1).add(last_x+(diff_x*(double)(lindex-i)), last_y+(diff_y*(double)(lindex-i)), layer_set.getLayer(i));
 					}
 				}
+				if (cindex == lindex) {
+					System.out.println("Try using Shift+Click on a different layer.");
+				}
+				item = null;
+				index = -1;
+				Display.repaint(layer_set, this, 0);
 			}
 			radius_override = 0;
 			return;
