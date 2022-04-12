@@ -26,6 +26,8 @@ package ini.trakem2.display;
 
 import ij.measure.Calibration;
 import ij.measure.ResultsTable;
+import ij.ImagePlus;
+import ij.process.ImageProcessor;
 import ini.trakem2.Project;
 import ini.trakem2.persistence.XMLOptions;
 import ini.trakem2.utils.M;
@@ -500,6 +502,9 @@ public class Dissector extends ZDisplayable implements VectorData {
 		if (ProjectToolbar.PEN != tool) return;
 
 		final long lid = la.getId(); // isn't this.layer pointing to the current layer always?
+		
+		final int current_x = x_p;
+		final int current_y = y_p;
 
 		// transform the x_p, y_p to the local coordinates
 		if (!this.at.isIdentity()) {
@@ -591,6 +596,57 @@ public class Dissector extends ZDisplayable implements VectorData {
 			this.item = new Item(max_tag+1, radius, x_p, y_p, la);
 			index = 0;
 			al_items.add(this.item);
+			// keep adding points to the item while the average grayscale intensity remains above the average grayscale intensity of the starting layer
+			// TODO:	dynamically change sample_radius using GUI input
+			//			keep alt pressed with GUI checkbox
+			//			add animation panel to GUI to allow automatic back-and-forth looping through layers, facilitating semi-automatic bright object annotation
+			if (me.isAltDown()) {
+				int sample_radius = 2; //default
+				final Rectangle r = new Rectangle(current_x - sample_radius, current_y - sample_radius, 2*sample_radius, 2*sample_radius);
+				final double scale = layer_set.getVirtualizationScale();
+				final Display display = ((DisplayCanvas)me.getSource()).getDisplay();
+				final int c_alphas = display.getDisplayChannelAlphas();
+				byte[] p_arr = (byte[])la.grab(r, scale, Patch.class, c_alphas, Layer.PIXELARRAY, ImagePlus.GRAY8);
+				int total = 0;
+				for(byte b : p_arr){
+					total = total + Byte.toUnsignedInt(b);
+				}	
+				double current_av = (double)total / (double)p_arr.length;
+				
+				final int i_firstL = 0;
+				final int i_currentL = layer_set.indexOf(la);
+				final int i_lastL = layer_set.size()-1;
+				for (int i=i_currentL+1; i<=i_lastL; i++) {
+					Layer i_layer = layer_set.getLayer(i);
+					byte[] i_p_arr = (byte[])i_layer.grab(r, scale, Patch.class, c_alphas, Layer.PIXELARRAY, ImagePlus.GRAY8);
+					int i_total = 0;
+					for(byte b : i_p_arr){
+						i_total = i_total + Byte.toUnsignedInt(b);
+					}
+					double i_av = (double)i_total / (double)i_p_arr.length;
+					if (i_av >= current_av) {
+						al_items.get(al_items.size()-1).add(al_items.get(al_items.size()-1).p[0][0], al_items.get(al_items.size()-1).p[1][0], i_layer);
+					}
+					else {
+						break;
+					}
+				}
+				for (int i=i_currentL-1; i>=i_firstL; i--) {
+					Layer i_layer = layer_set.getLayer(i);
+					byte[] i_p_arr = (byte[])i_layer.grab(r, scale, Patch.class, c_alphas, Layer.PIXELARRAY, ImagePlus.GRAY8);
+					int i_total = 0;
+					for(byte b : i_p_arr){
+						i_total = i_total + Byte.toUnsignedInt(b);
+					}
+					double i_av = (double)i_total / (double)i_p_arr.length;
+					if (i_av >= current_av) {
+						al_items.get(al_items.size()-1).add(al_items.get(al_items.size()-1).p[0][0], al_items.get(al_items.size()-1).p[1][0], i_layer);
+					}
+					else {
+						break;
+					}
+				}
+			}
 		} finally {
 			if (null != item) {
 				bbox = this.at.createTransformedShape(item.getBoundingBox()).getBounds();
