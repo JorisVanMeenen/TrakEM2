@@ -213,6 +213,9 @@ public final class Display extends DBObject implements ActionListener, IJEventLi
 
 	private OptionPanel filter_options;
 	private JScrollPane scroll_filter_options;
+	
+	private OptionPanel dissector_options;
+	private JScrollPane scroll_dissector_options;
 
 	private JEditorPane annot_editor;
 	private JLabel annot_label;
@@ -952,6 +955,12 @@ public final class Display extends DBObject implements ActionListener, IJEventLi
 		// layers not included
 		// tools not included
 		// annotations not included
+		
+		// Tab 10: dissector options
+		this.dissector_options = createDissectorOptionPanel(); // empty
+		this.scroll_dissector_options = makeScrollPane(this.dissector_options);
+		this.scroll_dissector_options.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		this.addTab("Dissector options", this.scroll_dissector_options);
 
 		// Navigator
 		this.navigator = new DisplayNavigator(this, layer.getLayerWidth(), layer.getLayerHeight());
@@ -7028,6 +7037,38 @@ public final class Display extends DBObject implements ActionListener, IJEventLi
 		}
 
 		return imp;
+	}
+	
+	/* Dissector option panel */
+	private int dissector_radius = 8; //default
+	private boolean ALT_override_enabled = false;
+	private int sample_radius = 2;
+	
+	public int getdissector_radius() {
+		return dissector_radius;
+	}
+	
+	public boolean getALT_override() {
+		return ALT_override_enabled;
+	}
+	
+	public int getsample_radius() {
+		return sample_radius;
+	}
+
+	private OptionPanel createDissectorOptionPanel() {
+		final OptionPanel dop = new OptionPanel();
+		final Runnable reaction = new Runnable() {
+			@Override
+            public void run() {
+				//do nothing
+			}
+		};
+		dop.addNumericField("Dissector Radius (Pixels)", dissector_radius, 0, new OptionPanel.IntSetter(this, "dissector_radius", reaction, 1, Integer.MAX_VALUE));
+		dop.addMessage("Bright Object Detection Options:");
+		dop.addCheckbox("ALT override", ALT_override_enabled, new OptionPanel.BooleanSetter(this, "ALT_override_enabled", reaction));
+		dop.addNumericField("Sample Radius (Pixels)", sample_radius, 0, new OptionPanel.IntSetter(this, "sample_radius", reaction, 1, Integer.MAX_VALUE));
+		return dop;
 	}
 
 	/////

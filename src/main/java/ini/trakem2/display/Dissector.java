@@ -502,6 +502,7 @@ public class Dissector extends ZDisplayable implements VectorData {
 		if (ProjectToolbar.PEN != tool) return;
 
 		final long lid = la.getId(); // isn't this.layer pointing to the current layer always?
+		final Display display = ((DisplayCanvas)me.getSource()).getDisplay();
 		
 		final int current_x = x_p;
 		final int current_y = y_p;
@@ -591,20 +592,17 @@ public class Dissector extends ZDisplayable implements VectorData {
 			for (final Item tmp : al_items) {
 				if (tmp.tag > max_tag) max_tag = tmp.tag;
 			}
-			int radius = 8; //default
+			int radius = display.getdissector_radius();
 			if (al_items.size() > 0) radius = al_items.get(al_items.size()-1).radius;
 			this.item = new Item(max_tag+1, radius, x_p, y_p, la);
 			index = 0;
 			al_items.add(this.item);
 			// keep adding points to the item while the average grayscale intensity remains above the average grayscale intensity of the starting layer
-			// TODO:	dynamically change sample_radius using GUI input
-			//			keep alt pressed with GUI checkbox
-			//			add animation panel to GUI to allow automatic back-and-forth looping through layers, facilitating semi-automatic bright object annotation
-			if (me.isAltDown()) {
-				int sample_radius = 2; //default
+			// TODO:	add animation panel to GUI to allow automatic back-and-forth looping through layers, facilitating semi-automatic bright object annotation
+			if (me.isAltDown() || display.getALT_override()) {
+				int sample_radius = display.getsample_radius();
 				final Rectangle r = new Rectangle(current_x - sample_radius, current_y - sample_radius, 2*sample_radius, 2*sample_radius);
 				final double scale = layer_set.getVirtualizationScale();
-				final Display display = ((DisplayCanvas)me.getSource()).getDisplay();
 				final int c_alphas = display.getDisplayChannelAlphas();
 				byte[] p_arr = (byte[])la.grab(r, scale, Patch.class, c_alphas, Layer.PIXELARRAY, ImagePlus.GRAY8);
 				int total = 0;
